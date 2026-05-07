@@ -1,0 +1,1129 @@
+const express = require('express');
+const router = express.Router();
+const mongoose = require('mongoose');
+const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
+const LeaveRecord = require('../models/LeaveRecord');
+const LeaveRequest = require('../models/LeaveRequest');
+const EmployeesHub = require('../models/EmployeesHub');
+const { resolveActorId } = require('../utils/identityHelper');
+
+/**
+ * Leave Management Routes
+ * Handles annual leave balances and leave records
+ */
+
+// @route   GET /api/leave/balances
+// @desc    Get leave balances with optional filters
+// @access  Private
+router.get('/balances', async (req, res) => {
+  try {
+    const { userId, yearStart, current } = req.query;
+    
+    let query = {};
+    
+    // If userId provided, filter by user
+    if (userId) {
+      query.user = userId;
+    }
+    
+    // If yearStart provided, filter by that year
+    if (yearStart) {
+      query.leaveYearStart = new Date(yearStart);
+    }
+    
+    // If current=true, get current year balances only
+    if (current === 'true') {
+      const now = new Date();
+      query.leaveYearStart = { $lte: now };
+      query.leaveYearEnd = { $gte: now };
+    }
+    
+    const balances = await AnnualLeaveBalance.find(query)
+      .populate('user', 'firstName lastName email vtid department')
+      .sort({ leaveYearStart: -1 });
+    
+    res.json({
+      success: true,
+      data: balances
+    });
+    
+  } catch (error) {
+    console.error('Get leave balances error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching leave balances'
+    });
+  }
+});
+
+// @route   GET /api/leave/balances/current/:userId
+// @desc    Get current leave balance for a specific user
+// @access  Private
+router.get('/balances/current/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const balance = await AnnualLeaveBalance.getCurrentBalance(userId);
+    
+    if (!balance) {
+      return res.status(404).json({
+        success: false,
+        message: 'No leave balance found for current year'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: balance
+    });
+    
+  } catch (error) {
+    console.error('Get current balance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching current balance'
+    });
+  }
+});
+
+// @route   POST /api/leave/balances
+// @desc    Create or update leave balance
+// @access  Private (Admin)
+router.post('/balances', async (req, res) => {
+  try {
+    const { 
+      userId, 
+      leaveYearStart, 
+      leaveYearEnd, 
+      entitlementDays, 
+      carryOverDays,
+      notes
+    } = req.body;
+    
+    if (!userId || !leaveYearStart || !leaveYearEnd || entitlementDays === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId, leaveYearStart, leaveYearEnd, and entitlementDays are required'
+      });
+    }
+    
+    // Check if employee exists in EmployeesHub
+    const employee = await EmployeesHub.findById(userId);
+    
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found. Leave balances are only for EmployeesHub employees.'
+      });
+    }
+    
+    // Upsert balance (update if exists, create if not)
+    const balance = await AnnualLeaveBalance.findOneAndUpdate(
+      { 
+        user: userId, 
+        leaveYearStart: new Date(leaveYearStart) 
+      },
+      {
+        user: userId,
+        leaveYearStart: new Date(leaveYearStart),
+        leaveYearEnd: new Date(leaveYearEnd),
+        entitlementDays,
+        carryOverDays: carryOverDays || 0,
+        notes
+      },
+      { 
+        new: true, 
+        upsert: true,
+        runValidators: true
+      }
+    ).populate('user', 'firstName lastName email vtid');
+    
+    // Recalculate used days
+    await AnnualLeaveBalance.recalculateUsedDays(
+      userId,
+      leaveYearStart,
+      leaveYearEnd
+    );
+    
+    // Fetch updated balance
+    const updatedBalance = await AnnualLeaveBalance.findById(balance._id)
+      .populate('user', 'firstName lastName email vtid');
+    
+    res.json({
+      success: true,
+      message: 'Leave balance saved successfully',
+      data: updatedBalance
+    });
+    
+  } catch (error) {
+    console.error('Create/update balance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error saving leave balance'
+    });
+  }
+});
+
+// @route   POST /api/leave/balances/upload
+// @desc    Upload multiple leave balances from CSV
+// @access  Private (Admin)
+router.post('/balances/upload', async (req, res) => {
+  try {
+    const { balances, importBatchId } = req.body;
+    
+    if (!Array.isArray(balances) || balances.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'balances array is required'
+      });
+    }
+    
+    const results = {
+      success: [],
+      failed: [],
+      total: balances.length
+    };
+    
+    const batchId = importBatchId || `BATCH_${Date.now()}`;
+    
+    for (const item of balances) {
+      try {
+        const { identifier, leaveYearStart, leaveYearEnd, entitlementDays, carryOverDays } = item;
+        
+        // Find employee by email in EmployeesHub
+        let employee;
+        
+        if (identifier.includes('@')) {
+          employee = await EmployeesHub.findOne({ email: identifier.toLowerCase() });
+        } else {
+          results.failed.push({
+            identifier,
+            reason: 'Invalid identifier format (use email)'
+          });
+          continue;
+        }
+        
+        if (!employee) {
+          results.failed.push({
+            identifier,
+            reason: 'Employee not found in EmployeesHub'
+          });
+          continue;
+        }
+        
+        // Create or update balance
+        await AnnualLeaveBalance.findOneAndUpdate(
+          { 
+            user: employee._id, 
+            leaveYearStart: new Date(leaveYearStart) 
+          },
+          {
+            user: employee._id,
+            leaveYearStart: new Date(leaveYearStart),
+            leaveYearEnd: new Date(leaveYearEnd),
+            entitlementDays: entitlementDays || 20,
+            carryOverDays: carryOverDays || 0,
+            importBatchId: batchId
+          },
+          { 
+            new: true, 
+            upsert: true,
+            runValidators: true
+          }
+        );
+        
+        results.success.push(identifier);
+        
+      } catch (error) {
+        results.failed.push({
+          identifier: item.identifier,
+          reason: error.message
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Processed ${results.total} records: ${results.success.length} succeeded, ${results.failed.length} failed`,
+      data: results
+    });
+    
+  } catch (error) {
+    console.error('Upload balances error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error uploading leave balances'
+    });
+  }
+});
+
+// @route   PUT /api/leave/balances/:id
+// @desc    Update leave balance (adjustments, etc.)
+// @access  Private (Admin)
+router.put('/balances/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { entitlementDays, carryOverDays, adjustment, notes } = req.body;
+    
+    const balance = await AnnualLeaveBalance.findById(id);
+    
+    if (!balance) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave balance not found'
+      });
+    }
+    
+    // Update fields
+    if (entitlementDays !== undefined) balance.entitlementDays = entitlementDays;
+    if (carryOverDays !== undefined) balance.carryOverDays = carryOverDays;
+    if (notes !== undefined) balance.notes = notes;
+    
+    // Add adjustment if provided
+    if (adjustment && adjustment.days !== undefined && adjustment.reason) {
+      balance.adjustments.push({
+        days: adjustment.days,
+        reason: adjustment.reason,
+        adjustedBy: req.user.id,
+        at: new Date()
+      });
+    }
+    
+    await balance.save();
+    
+    // Recalculate used days
+    await AnnualLeaveBalance.recalculateUsedDays(
+      balance.user,
+      balance.leaveYearStart,
+      balance.leaveYearEnd
+    );
+    
+    const updatedBalance = await AnnualLeaveBalance.findById(id)
+      .populate('user', 'firstName lastName email vtid');
+    
+    res.json({
+      success: true,
+      message: 'Leave balance updated successfully',
+      data: updatedBalance
+    });
+    
+  } catch (error) {
+    console.error('Update balance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error updating leave balance'
+    });
+  }
+});
+
+// @route   GET /api/leave/balances/export
+// @desc    Export leave balances to CSV
+// @access  Private (Admin)
+router.get('/balances/export', async (req, res) => {
+  try {
+    const balances = await AnnualLeaveBalance.find({})
+      .populate('user', 'firstName lastName email vtid department')
+      .sort({ leaveYearStart: -1 });
+    
+    // Generate CSV
+    let csv = 'Employee Name,Email,VTID,Department,Leave Year Start,Leave Year End,Entitlement Days,Carry Over Days,Adjustments,Used Days,Remaining Days\n';
+    
+    balances.forEach(balance => {
+      const employeeName = balance.user ? 
+        `${balance.user.firstName} ${balance.user.lastName}` : 'Unknown';
+      const email = balance.user?.email || '';
+      const vtid = balance.user?.vtid || '';
+      const department = balance.user?.department || '';
+      const yearStart = balance.leaveYearStart.toLocaleDateString();
+      const yearEnd = balance.leaveYearEnd.toLocaleDateString();
+      const entitlement = balance.entitlementDays;
+      const carryOver = balance.carryOverDays;
+      const adjustments = balance.adjustments.reduce((sum, adj) => sum + adj.days, 0);
+      const used = balance.usedDays;
+      const remaining = balance.remainingDays;
+      
+      csv += `"${employeeName}",${email},${vtid},"${department}",${yearStart},${yearEnd},${entitlement},${carryOver},${adjustments},${used},${remaining}\n`;
+    });
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="leave-balances.csv"');
+    res.send(csv);
+    
+  } catch (error) {
+    console.error('Export balances error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error exporting leave balances'
+    });
+  }
+});
+
+// @route   GET /api/leave/records
+// @desc    Get leave records with optional filters
+// @access  Private
+router.get('/records', async (req, res) => {
+  try {
+    const { userId, startDate, endDate, type, status } = req.query;
+    
+    let query = {};
+    
+    if (userId) query.user = userId;
+    if (type) query.type = type;
+    if (status) query.status = status;
+    
+    if (startDate || endDate) {
+      query.$or = [
+        { startDate: { $gte: startDate ? new Date(startDate) : new Date(0), $lte: endDate ? new Date(endDate) : new Date() } },
+        { endDate: { $gte: startDate ? new Date(startDate) : new Date(0), $lte: endDate ? new Date(endDate) : new Date() } }
+      ];
+    }
+    
+    const records = await LeaveRecord.find(query)
+      .populate('user', 'firstName lastName email vtid department')
+      .populate('createdBy', 'firstName lastName')
+      .populate('approvedBy', 'firstName lastName')
+      .sort({ startDate: -1 });
+    
+    res.json({
+      success: true,
+      data: records
+    });
+    
+  } catch (error) {
+    console.error('Get leave records error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching leave records'
+    });
+  }
+});
+
+// @route   POST /api/leave/records
+// @desc    Create leave record
+// @access  Private
+router.post('/records', async (req, res) => {
+  try {
+    console.log('=== CREATE LEAVE RECORD REQUEST ===');
+    console.log('Request body:', req.body);
+    console.log('Authenticated user:', req.user);
+    
+    let { userId, type, startDate, endDate, days, reason, status, notes } = req.body;
+    
+    // If userId not provided, resolve from authenticated user
+    if (!userId && req.user) {
+      console.log('🔍 No userId in body, resolving from authenticated user');
+      const authId = resolveActorId(req);
+      const authIdStr = authId ? String(authId).trim() : '';
+      
+      // Try finding employee by userId field
+      if (authIdStr && mongoose.Types.ObjectId.isValid(authIdStr)) {
+        let employee = await EmployeesHub.findOne({ userId: authIdStr }).select('_id');
+        if (!employee) {
+          employee = await EmployeesHub.findById(authIdStr).select('_id');
+        }
+        if (employee) {
+          userId = employee._id;
+          console.log('✅ Resolved employee from auth user:', userId);
+        }
+      }
+      
+      // Fall back to email lookup
+      if (!userId && req.user.email) {
+        const employee = await EmployeesHub.findOne({ 
+          email: String(req.user.email).toLowerCase() 
+        }).select('_id');
+        if (employee) {
+          userId = employee._id;
+          console.log('✅ Resolved employee from email:', userId);
+        }
+      }
+    }
+    
+    if (!userId || !startDate || !endDate || days === undefined) {
+      console.error('Missing required fields:', { userId: !!userId, startDate: !!startDate, endDate: !!endDate, days });
+      return res.status(400).json({
+        success: false,
+        message: !userId ? 'Could not find your employee profile. Please contact HR support.' : 'startDate, endDate, and days are required'
+      });
+    }
+    
+    // Check if employee exists in EmployeesHub
+    const employee = await EmployeesHub.findById(userId);
+    
+    if (!employee) {
+      console.error('Employee not found in EmployeesHub:', userId);
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found. Leave records are only for EmployeesHub employees.'
+      });
+    }
+    
+    console.log('Creating leave record for:', employee.email || employee.firstName);
+    
+    const record = new LeaveRecord({
+      user: userId,
+      type: type || 'annual',
+      status: status || 'approved',
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      days,
+      reason,
+      notes: notes || req.body.notes,
+      createdBy: req.user?.id || null,
+      approvedBy: status === 'approved' ? (req.user?.id || null) : null,
+      approvedAt: status === 'approved' ? new Date() : null
+    });
+    
+    await record.save();
+    
+    const populatedRecord = await LeaveRecord.findById(record._id)
+      .populate('user', 'firstName lastName email vtid')
+      .populate('createdBy', 'firstName lastName');
+    
+    res.json({
+      success: true,
+      message: 'Leave record created successfully',
+      data: populatedRecord
+    });
+    
+  } catch (error) {
+    console.error('=== CREATE LEAVE RECORD ERROR ===');
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Server error creating leave record',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/leave/records/:id
+// @desc    Update leave record
+// @access  Private (Admin)
+router.put('/records/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, days, reason, startDate, endDate } = req.body;
+    
+    const record = await LeaveRecord.findById(id);
+    
+    if (!record) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave record not found'
+      });
+    }
+    
+    if (status !== undefined) {
+      record.status = status;
+      if (status === 'approved') {
+        record.approvedBy = req.user.id;
+        record.approvedAt = new Date();
+      } else if (status === 'rejected') {
+        record.rejectedBy = req.user.id;
+        record.rejectedAt = new Date();
+      }
+    }
+    
+    if (days !== undefined) record.days = days;
+    if (reason !== undefined) record.reason = reason;
+    if (startDate) record.startDate = new Date(startDate);
+    if (endDate) record.endDate = new Date(endDate);
+    
+    await record.save();
+    
+    const updatedRecord = await LeaveRecord.findById(id)
+      .populate('user', 'firstName lastName email vtid')
+      .populate('approvedBy', 'firstName lastName');
+    
+    res.json({
+      success: true,
+      message: 'Leave record updated successfully',
+      data: updatedRecord
+    });
+    
+  } catch (error) {
+    console.error('Update leave record error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error updating leave record'
+    });
+  }
+});
+
+// @route   DELETE /api/leave/records/:id
+// @desc    Delete leave record
+// @access  Private (Admin)
+router.delete('/records/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const record = await LeaveRecord.findByIdAndDelete(id);
+    
+    if (!record) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave record not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Leave record deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Delete leave record error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error deleting leave record'
+    });
+  }
+});
+
+// @route   GET /api/leave/user/current
+// @desc    Get current user's current leave balance
+// @access  Private (User)
+router.get('/user/current', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const balance = await AnnualLeaveBalance.getCurrentBalance(userId);
+    
+    if (!balance) {
+      return res.json({
+        success: true,
+        data: {
+          entitlementDays: 0,
+          carryOverDays: 0,
+          usedDays: 0,
+          remainingDays: 0,
+          message: 'No leave balance configured'
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: balance
+    });
+    
+  } catch (error) {
+    console.error('Get user current balance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching leave balance'
+    });
+  }
+});
+
+// @route   GET /api/leave/user/next-leave
+// @desc    Get current user's next upcoming approved leave
+// @access  Private (User)
+router.get('/user/next-leave', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    
+    const nextLeave = await LeaveRecord.findOne({
+      user: userId,
+      status: 'approved',
+      startDate: { $gte: now }
+    }).sort({ startDate: 1 });
+    
+    if (!nextLeave) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No upcoming leave found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: nextLeave
+    });
+    
+  } catch (error) {
+    console.error('Get next leave error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching next leave'
+    });
+  }
+});
+
+// ==================== LEAVE APPROVAL WORKFLOW ROUTES ====================
+const leaveApprovalController = require('../controllers/leaveApprovalController');
+
+// @route   POST /deprecated/leave/requests/submit
+// @desc    Submit a new leave request (pending approval) - DEPRECATED
+// @desc    Use POST /api/leave/requests instead
+// @access  Private
+// router.post('/requests/submit', leaveApprovalController.submitLeaveRequest);
+
+// @route   POST /deprecated/leave/requests/:leaveId/approve
+// @desc    Approve a pending leave request - DEPRECATED
+// @desc    Use POST /deprecated/leave/requests/:id/approve instead
+// @access  Private (Manager/Admin)
+// router.post('/requests/:leaveId/approve', leaveApprovalController.approveLeaveRequest);
+
+// @route   POST /deprecated/leave/requests/:leaveId/reject
+// @desc    Reject a pending leave request - DEPRECATED
+// @desc    Use POST /deprecated/leave/requests/:id/reject instead
+// @access  Private (Manager/Admin)
+// router.post('/requests/:leaveId/reject', leaveApprovalController.rejectLeaveRequest);
+
+// @route   GET /deprecated/leave/requests/pending
+// @desc    Get all pending leave requests for a manager - DEPRECATED
+// @desc    Use GET /deprecated/leave/requests/pending (inline handler) instead
+// @access  Private (Manager/Admin)
+// router.get('/requests/pending', leaveApprovalController.getPendingLeaveRequests);
+
+// @route   GET /deprecated/leave/requests/employee/:employeeId
+// @desc    Get all leave requests for a specific employee - DEPRECATED
+// @access  Private
+// router.get('/requests/employee/:employeeId', leaveApprovalController.getEmployeeLeaveRequests);
+
+// @route   GET /api/leave/overlaps
+// @desc    Detect overlapping leave requests for team/department - DEPRECATED
+// @access  Private (Manager/Admin)
+// router.get('/overlaps', leaveApprovalController.detectLeaveOverlaps);
+
+// @route   PUT /deprecated/leave/balance/:userId
+// @desc    Update user's annual leave entitlement by userId
+// @access  Private (Admin)
+router.put('/balance/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { totalDays } = req.body;
+    
+    if (!totalDays || totalDays < 0 || totalDays > 60) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid total days. Must be between 0 and 60.'
+      });
+    }
+    
+    // Find current leave year balance
+    const now = new Date();
+    const balance = await AnnualLeaveBalance.findOne({
+      user: userId,
+      leaveYearStart: { $lte: now },
+      leaveYearEnd: { $gte: now }
+    });
+    
+    if (!balance) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave balance not found for current year'
+      });
+    }
+    
+    balance.entitlementDays = totalDays;
+    await balance.save();
+    
+    res.json({
+      success: true,
+      message: 'Annual leave allowance updated successfully',
+      data: balance
+    });
+  } catch (error) {
+    console.error('Error updating leave balance:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update leave balance',
+      error: error.message
+    });
+  }
+});
+
+// Admin: Update employee annual leave balance
+router.put('/admin/balance/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { entitlementDays, carryOverDays, reason } = req.body;
+    const adminId = resolveActorId(req);
+
+    if (!adminId) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // Find current leave year balance
+    const now = new Date();
+    let balance = await AnnualLeaveBalance.findOne({
+      user: userId,
+      leaveYearStart: { $lte: now },
+      leaveYearEnd: { $gte: now }
+    });
+
+    if (!balance) {
+      // Create new balance record for current year
+      const currentYear = now.getFullYear();
+      const month = now.getMonth();
+      const leaveYearStart = month >= 3 ? new Date(currentYear, 3, 1) : new Date(currentYear - 1, 3, 1);
+      const leaveYearEnd = month >= 3 ? new Date(currentYear + 1, 2, 31) : new Date(currentYear, 2, 31);
+
+      balance = new AnnualLeaveBalance({
+        user: userId,
+        leaveYearStart,
+        leaveYearEnd,
+        entitlementDays: entitlementDays || 28,
+        carryOverDays: carryOverDays || 0,
+        usedDays: 0
+      });
+    } else {
+      // Update existing balance
+      const oldEntitlement = balance.entitlementDays;
+      
+      if (entitlementDays !== undefined && entitlementDays !== oldEntitlement) {
+        balance.entitlementDays = entitlementDays;
+        
+        // Add adjustment record
+        if (reason) {
+          balance.adjustments.push({
+            days: entitlementDays - oldEntitlement,
+            reason: reason,
+            adjustedBy: adminId,
+            at: new Date()
+          });
+        }
+      }
+      
+      if (carryOverDays !== undefined) {
+        balance.carryOverDays = carryOverDays;
+      }
+    }
+
+    await balance.save();
+
+    // Populate user details
+    await balance.populate('user', 'firstName lastName email');
+
+    res.json({
+      success: true,
+      message: 'Leave balance updated successfully',
+      data: balance
+    });
+  } catch (error) {
+    console.error('Error updating leave balance:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to update leave balance', 
+      error: error.message 
+    });
+  }
+});
+
+// ============================================
+// LEAVE REQUEST ROUTES (NEW)
+// ============================================
+
+// @route   POST /api/leave/requests
+// @desc    Create a new leave request
+// @access  Private (Employee)
+router.post('/requests', async (req, res) => {
+  try {
+    const { approverId, leaveType, startDate, endDate, reason, status } = req.body;
+    const employeeId = req.session?.user?._id || req.user?.id;
+
+    if (!employeeId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    if (!approverId || !leaveType || !startDate || !endDate || !reason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (start > end) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date must be before end date'
+      });
+    }
+
+    // Calculate number of days (inclusive)
+    const oneDay = 24 * 60 * 60 * 1000;
+    const numberOfDays = Math.round((end - start) / oneDay) + 1;
+
+    // Check for overlapping leave requests
+    const overlappingLeave = await LeaveRequest.findOne({
+      employeeId,
+      status: { $in: ['Pending', 'Approved'] },
+      $or: [
+        { startDate: { $lte: end }, endDate: { $gte: start } }
+      ]
+    });
+
+    if (overlappingLeave) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have a leave request for this date range'
+      });
+    }
+
+    const leaveRequest = new LeaveRequest({
+      employeeId,
+      approverId,
+      leaveType,
+      startDate: start,
+      endDate: end,
+      numberOfDays,
+      reason,
+      status: status === 'Draft' ? 'Draft' : 'Pending'
+    });
+
+    await leaveRequest.save();
+    await leaveRequest.populate('employeeId', 'firstName lastName email');
+    await leaveRequest.populate('approverId', 'firstName lastName email');
+
+    // Create notification for approver if status is Pending
+    if (leaveRequest.status === 'Pending') {
+      try {
+        const employee = await EmployeesHub.findById(employeeId);
+        const Notification = require('../models/Notification');
+        await Notification.create({
+          recipientType: 'employee',
+          employeeRef: approverId,
+          type: 'leave',
+          title: 'New Leave Request',
+          message: `${employee?.firstName} ${employee?.lastName} has submitted a ${leaveType} leave request for ${numberOfDays} day(s)`,
+          priority: 'medium',
+          metadata: { relatedId: leaveRequest._id }
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: leaveRequest.status === 'Draft' ? 'Leave request saved as draft' : 'Leave request submitted successfully',
+      data: leaveRequest
+    });
+  } catch (error) {
+    console.error('Create leave request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating leave request',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /deprecated/leave/requests/pending
+// @desc    Get pending leave requests for approval (manager/admin)
+// @access  Private (Manager/Admin)
+router.get('/requests/pending', async (req, res) => {
+  try {
+    const approverId = req.session?.user?._id || req.user?.id;
+
+    if (!approverId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const pendingRequests = await LeaveRequest.find({
+      approverId,
+      status: 'Pending'
+    })
+      .populate('employeeId', 'firstName lastName email vtid department')
+      .populate('approverId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: pendingRequests
+    });
+  } catch (error) {
+    console.error('Get pending requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching pending requests',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /deprecated/leave/requests/employee/:employeeId
+// @desc    Get all leave requests for an employee
+// @access  Private
+router.get('/requests/employee/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const requests = await LeaveRequest.find({ employeeId })
+      .populate('approverId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: requests
+    });
+  } catch (error) {
+    console.error('Get employee requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching leave requests',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /deprecated/leave/requests/my-requests
+// @desc    Get current user's leave requests
+// @access  Private (Employee)
+router.get('/requests/my-requests', async (req, res) => {
+  try {
+    const employeeId = req.session?.user?._id || req.user?.id;
+
+    if (!employeeId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const { status } = req.query;
+
+    let query = { employeeId };
+    if (status) {
+      query.status = status;
+    }
+
+    const requests = await LeaveRequest.find(query)
+      .populate('approverId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: requests
+    });
+  } catch (error) {
+    console.error('Get my requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching leave requests',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /deprecated/leave/requests/:id/approve
+// @desc    Approve a leave request
+// @access  Private (Manager/Admin)
+router.post('/requests/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approvalNotes } = req.body;
+
+    const leaveRequest = await LeaveRequest.findById(id);
+    if (!leaveRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave request not found'
+      });
+    }
+
+    if (leaveRequest.status !== 'Pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve a ${leaveRequest.status} leave request`
+      });
+    }
+
+    leaveRequest.status = 'Approved';
+    leaveRequest.adminComment = approvalNotes || '';
+    leaveRequest.approvedAt = new Date();
+    await leaveRequest.save();
+
+    // Update leave balance if applicable
+    if (leaveRequest.leaveType !== 'Unpaid') {
+      const balance = await AnnualLeaveBalance.findOne({
+        user: leaveRequest.employeeId
+      });
+
+      if (balance) {
+        balance.daysUsed = (balance.daysUsed || 0) + leaveRequest.numberOfDays;
+        await balance.save();
+      }
+    }
+
+    await leaveRequest.populate('employeeId', 'firstName lastName email');
+    await leaveRequest.populate('approverId', 'firstName lastName email');
+
+    res.json({
+      success: true,
+      message: 'Leave request approved successfully',
+      data: leaveRequest
+    });
+  } catch (error) {
+    console.error('Approve leave request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error approving leave request',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /deprecated/leave/requests/:id/reject
+// @desc    Reject a leave request
+// @access  Private (Manager/Admin)
+router.post('/requests/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+
+    if (!rejectionReason || rejectionReason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required'
+      });
+    }
+
+    const leaveRequest = await LeaveRequest.findById(id);
+    if (!leaveRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave request not found'
+      });
+    }
+
+    if (leaveRequest.status !== 'Pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot reject a ${leaveRequest.status} leave request`
+      });
+    }
+
+    leaveRequest.status = 'Rejected';
+    leaveRequest.rejectionReason = rejectionReason;
+    leaveRequest.rejectedAt = new Date();
+    await leaveRequest.save();
+
+    await leaveRequest.populate('employeeId', 'firstName lastName email');
+    await leaveRequest.populate('approverId', 'firstName lastName email');
+
+    res.json({
+      success: true,
+      message: 'Leave request rejected successfully',
+      data: leaveRequest
+    });
+  } catch (error) {
+    console.error('Reject leave request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error rejecting leave request',
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;

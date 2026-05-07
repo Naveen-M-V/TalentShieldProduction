@@ -1,0 +1,97 @@
+<svg width="100%" viewBox="0 0 690 590" role="img" xmlns="http://www.w3.org/2000/svg" style="">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Talent Shield professional logo</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Professional shield logo for Talent Shield HRMS, sage green and teal palette, works on dark backgrounds</desc>
+
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#52796f"/>
+      <stop offset="100%" stop-color="#354f52"/>
+    </linearGradient>
+    <linearGradient id="shieldInner" x1="0%" y1="0%" x2="60%" y2="100%">
+      <stop offset="0%" stop-color="#2f3e46"/>
+      <stop offset="100%" stop-color="#1e2d33"/>
+    </linearGradient>
+    <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cad2c5"/>
+      <stop offset="100%" stop-color="#84a98c"/>
+    </linearGradient>
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#84a98c" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#52796f" stop-opacity="0.4"/>
+    </linearGradient>
+    <filter id="softShadow" x="-15%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#0a1518" flood-opacity="0.5"/>
+    </filter>
+  <mask id="imagine-text-gaps-3dhltd" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="690" height="590" fill="white"/><rect x="211.2624969482422" y="455.20001220703125" width="257.4750061035156" height="15.199999809265137" fill="black" rx="2"/><rect x="235.4250030517578" y="479.6000061035156" width="209.15000915527344" height="52" fill="black" rx="2"/><rect x="226.7937469482422" y="517.6000366210938" width="226.41250610351562" height="52" fill="black" rx="2"/></mask></defs>
+
+  <!-- ── Dark demo background strip so logo is visible ── -->
+  <rect x="0" y="0" width="680" height="580" fill="#1a2a2f" rx="12" style="fill:rgb(26, 42, 47);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Subtle grid texture -->
+  <g opacity="0.06" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.06;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <line x1="0" y1="100" x2="680" y2="100" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="0" y1="200" x2="680" y2="200" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="0" y1="300" x2="680" y2="300" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="0" y1="400" x2="680" y2="400" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="0" y1="500" x2="680" y2="500" stroke="#cad2c5" stroke-width="0.5" mask="url(#imagine-text-gaps-3dhltd)" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="100" y1="0" x2="100" y2="580" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="200" y1="0" x2="200" y2="580" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="300" y1="0" x2="300" y2="580" stroke="#cad2c5" stroke-width="0.5" mask="url(#imagine-text-gaps-3dhltd)" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="400" y1="0" x2="400" y2="580" stroke="#cad2c5" stroke-width="0.5" mask="url(#imagine-text-gaps-3dhltd)" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="500" y1="0" x2="500" y2="580" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="600" y1="0" x2="600" y2="580" stroke="#cad2c5" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  </g>
+
+  <!-- ══════════════════════════════════
+       SHIELD — outer glow halo
+  ══════════════════════════════════ -->
+  <path d="M340 54&#10;           C340 54 236 82 192 92&#10;           L192 284&#10;           C192 372 268 428 340 458&#10;           C412 428 488 372 488 284&#10;           L488 92&#10;           C444 82 340 54 340 54Z" fill="none" stroke="#52796f" stroke-width="1" opacity="0.3" mask="url(#imagine-text-gaps-3dhltd)" style="fill:none;stroke:rgb(82, 121, 111);color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.3;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ══════════════════════════════════
+       SHIELD — main body
+  ══════════════════════════════════ -->
+  <path d="M340 62&#10;           C340 62 244 88 202 98&#10;           L202 282&#10;           C202 366 274 420 340 450&#10;           C406 420 478 366 478 282&#10;           L478 98&#10;           C436 88 340 62 340 62Z" fill="url(#shieldGrad)" filter="url(#softShadow)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── Shield bevel / top highlight edge ── -->
+  <path d="M340 62 C340 62 244 88 202 98 L202 110 C244 100 340 74 340 74 C340 74 436 100 478 110 L478 98 C436 88 340 62 340 62Z" fill="#84a98c" opacity="0.25" style="fill:rgb(132, 169, 140);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.25;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── Left face shadow ── -->
+  <path d="M202 98 L202 282 C202 335 224 376 258 408 L258 118 C234 112 202 98 202 98Z" fill="#2f3e46" opacity="0.4" style="fill:rgb(47, 62, 70);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── Shield inner panel ── -->
+  <path d="M340 86&#10;           C340 86 256 108 222 116&#10;           L222 280&#10;           C222 352 278 400 340 426&#10;           C402 400 458 352 458 280&#10;           L458 116&#10;           C424 108 340 86 340 86Z" fill="url(#shieldInner)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── Inner panel top highlight ── -->
+  <path d="M340 86 C340 86 256 108 222 116 L222 126 C256 118 340 96 340 96 C340 96 424 118 458 126 L458 116 C424 108 340 86 340 86Z" fill="#84a98c" opacity="0.15" style="fill:rgb(132, 169, 140);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.15;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── Thin rim line on outer shield ── -->
+  <path d="M340 62&#10;           C340 62 244 88 202 98&#10;           L202 282&#10;           C202 366 274 420 340 450&#10;           C406 420 478 366 478 282&#10;           L478 98&#10;           C436 88 340 62 340 62Z" fill="none" stroke="url(#rimGrad)" stroke-width="1.5" style="fill:none;color:rgb(255, 255, 255);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ══════════════════════════════════
+       CHECKMARK — clean geometric
+  ══════════════════════════════════ -->
+  <!-- Shadow / depth layer -->
+  <polyline points="272,278 316,324 410,210" fill="none" stroke="#0a1518" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" style="fill:none;stroke:rgb(10, 21, 24);color:rgb(255, 255, 255);stroke-width:28px;stroke-linecap:round;stroke-linejoin:round;opacity:0.35;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Main check body -->
+  <polyline points="272,278 316,324 410,210" fill="none" stroke="url(#checkGrad)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" style="fill:none;color:rgb(255, 255, 255);stroke-width:22px;stroke-linecap:round;stroke-linejoin:round;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Check inner sheen -->
+  <polyline points="272,278 316,324 410,210" fill="none" stroke="#cad2c5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" style="fill:none;stroke:rgb(202, 210, 197);color:rgb(255, 255, 255);stroke-width:6px;stroke-linecap:round;stroke-linejoin:round;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ══════════════════════════════════
+       WORDMARK
+  ══════════════════════════════════ -->
+
+  <!-- Thin separator -->
+  <line x1="260" y1="478" x2="420" y2="478" stroke="#52796f" stroke-width="0.8" opacity="0.7" style="fill:rgb(0, 0, 0);stroke:rgb(82, 121, 111);color:rgb(255, 255, 255);stroke-width:0.8px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.7;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Eyebrow -->
+  <text x="340" y="466" text-anchor="middle" font-family="'DM Sans', 'Helvetica Neue', sans-serif" font-size="9.5" font-weight="500" letter-spacing="3.5" fill="#84a98c" opacity="0.9" style="fill:rgb(132, 169, 140);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.9;font-family:&quot;DM Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif;font-size:9.5px;font-weight:500;text-anchor:middle;dominant-baseline:auto">HUMAN RESOURCE MANAGEMENT</text>
+
+  <!-- Main wordmark -->
+  <text x="340" y="520" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="42" font-weight="400" letter-spacing="6" fill="#cad2c5" style="fill:rgb(202, 210, 197);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Georgia, &quot;Times New Roman&quot;, serif;font-size:42px;font-weight:400;text-anchor:middle;dominant-baseline:auto">TALENT</text>
+
+  <text x="340" y="558" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="42" font-weight="400" letter-spacing="10" fill="#84a98c" style="fill:rgb(132, 169, 140);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Georgia, &quot;Times New Roman&quot;, serif;font-size:42px;font-weight:400;text-anchor:middle;dominant-baseline:auto">SHIELD</text>
+
+</svg>
